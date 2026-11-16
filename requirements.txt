@@ -1,4 +1,21 @@
+<<<<<<< Updated upstream
 streamlit
 pandas
 matplotlib
 seaborn
+=======
+
+# Data analysis
+numpy
+pandas
+matplotlib
+seaborn
+
+# Jupyter Notebook
+jupyter
+ipykernel
+
+# Interactive dashboard
+streamlit
+plotly
+>>>>>>> Stashed changes
