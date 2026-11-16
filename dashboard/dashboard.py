@@ -27,15 +27,27 @@ else:
     st.sidebar.header("Filter Opsi")
     min_date = df["order_purchase_timestamp"].min()
     max_date = df["order_purchase_timestamp"].max()
-    
-    start_date, end_date = st.sidebar.date_input(
-        "Rentang Waktu",
-        value=[min_date.date(), max_date.date()],
-        min_value=min_date.date(),
-        max_value=max_date.date()
-    )
-    
-    # Filter dataframe based on selection
+
+    # Try-except block for robust date range filter
+    try:
+        date_range = st.sidebar.date_input(
+            "Rentang Waktu",
+            value=[min_date.date(), max_date.date()],
+            min_value=min_date.date(),
+            max_value=max_date.date()
+        )
+
+        # Handle case when both dates are successfully selected
+        if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
+            start_date, end_date = date_range
+        else:
+            start_date = min_date.date()
+            end_date = max_date.date()
+    except Exception:
+        # Fallback to full range if parsing/input fails
+        start_date = min_date.date()
+        end_date = max_date.date()
+
     filtered_df = df[
         (df["order_purchase_timestamp"].dt.date >= start_date) &
         (df["order_purchase_timestamp"].dt.date <= end_date)
@@ -59,54 +71,54 @@ else:
 
     # Section 1: Monthly Trends
     st.subheader("📈 Tren Bulanan Penjualan dan Pembayaran")
-    
+
     monthly_sales = filtered_df.copy()
     monthly_sales["order_month"] = monthly_sales["order_purchase_timestamp"].dt.to_period("M").astype(str)
-    
+
     sales_monthly = (
         monthly_sales.groupby("order_month")
         .agg(total_orders=("order_id", "nunique"), total_payment=("payment_value", "sum"))
         .reset_index()
     )
-    
+
     fig, ax1 = plt.subplots(figsize=(12, 5))
     x_axis = range(len(sales_monthly))
-    
+
     ax1.plot(x_axis, sales_monthly["total_orders"], marker="o", color="#1f77b4", label="Jumlah Pesanan")
     ax1.set_xlabel("Bulan")
     ax1.set_ylabel("Jumlah Pesanan", color="#1f77b4")
     ax1.tick_params(axis="y", labelcolor="#1f77b4")
     plt.xticks(x_axis, sales_monthly["order_month"], rotation=45)
-    
+
     ax2 = ax1.twinx()
     ax2.plot(x_axis, sales_monthly["total_payment"], marker="s", color="orange", label="Total Pembayaran")
     ax2.set_ylabel("Total Pembayaran (R$)", color="orange")
     ax2.tick_params(axis="y", labelcolor="orange")
-    
+
     plt.title("Perkembangan Transaksi dan GMV Bulanan")
     fig.tight_layout()
     st.pyplot(fig)
 
     # Section 2: Delivery performance
     st.subheader("🚚 Tingkat Keterlambatan Pengiriman per Negara Bagian")
-    
+
     delivered = filtered_df[
         (filtered_df["order_status"] == "delivered") &
         filtered_df["is_late"].notna() &
         filtered_df["customer_state"].notna()
     ].copy()
-    
+
     if not delivered.empty:
         delivery_by_state = delivered.groupby("customer_state").agg(
             delivered_orders=("order_id", "nunique"),
             late_orders=("is_late", "sum")
         ).reset_index()
-        
+
         delivery_by_state["late_rate_pct"] = (
             delivery_by_state["late_orders"] / delivery_by_state["delivered_orders"] * 100
         )
         delivery_by_state = delivery_by_state.sort_values("late_rate_pct", ascending=True)
-        
+
         fig2, ax = plt.subplots(figsize=(11, 6))
         sns.barplot(data=delivery_by_state, x="late_rate_pct", y="customer_state", palette="coolwarm", ax=ax)
         ax.set_xlabel("Pesanan Terlambat (%)")
@@ -122,7 +134,7 @@ else:
         rfm = pd.read_csv("rfm_customer_segments.csv")
         segments = rfm["Segment"].value_counts().reset_index()
         segments.columns = ["Segment", "Total Customers"]
-        
+
         col_left, col_right = st.columns([1, 2])
         with col_left:
             st.write("**Distribusi Segmen Pelanggan:**")
