@@ -12,8 +12,8 @@ sns.set_theme(style="whitegrid")
 # Load Data
 @st.cache_data
 def load_data():
-    if os.path.exists("main_data.csv"):
-        df = pd.read_csv("main_data.csv")
+    if os.path.exists("dashboard/main_data.csv"):
+        df = pd.read_csv("dashboard/main_data.csv")
         df["order_purchase_timestamp"] = pd.to_datetime(df["order_purchase_timestamp"])
         return df
     return pd.DataFrame()
